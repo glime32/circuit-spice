@@ -1,0 +1,8 @@
+* Filtre RC passe-bas : réponse à un échelon et diagramme de Bode
+* tau = R·C = 1 ms, fréquence de coupure 1/(2π·R·C) ≈ 159 Hz
+V1 entree 0 PULSE(0 5 0.5m 1u 1u 10m 20m) AC 1
+R1 entree sortie 1k
+C1 sortie 0 1u
+.tran 10u 6m
+.ac dec 20 1 100k
+.sonde V(entree) V(sortie)

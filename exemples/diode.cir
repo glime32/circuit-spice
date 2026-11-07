@@ -1,0 +1,6 @@
+* Caractéristique courant-tension d'une diode (1N4148 approchée)
+V1 a 0 DC 0
+R1 a k 10
+D1 k 0 IS=2.5n N=1.75
+.dc V1 0 1.2 0.01
+.sonde I(V1) V(k)

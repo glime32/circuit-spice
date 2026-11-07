@@ -1,0 +1,5 @@
+* Pont diviseur de tension
+V1 entree 0 DC 12
+R1 entree milieu 10k
+R2 milieu 0 4.7k
+.op

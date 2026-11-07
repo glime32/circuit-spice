@@ -1,0 +1,10 @@
+* Redresseur double alternance (pont de diodes) avec condensateur de lissage
+V1 a b SIN(0 12 50)
+D1 a plus
+D2 b plus
+D3 0 a
+D4 0 b
+C1 plus 0 470u
+R1 plus 0 1k
+.tran 50u 60m
+.sonde V(a,b) V(plus)

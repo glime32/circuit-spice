@@ -1,0 +1,10 @@
+* Filtre passe-bas de Sallen-Key d'ordre 2 (Butterworth, fc ≈ 1 kHz)
+* deux pôles : la pente passe à -40 dB par décade
+V1 entree 0 AC 1
+R1 entree a 11.25k
+R2 a b 11.25k
+C1 a sortie 20n
+C2 b 0 10n
+E1 sortie 0 b sortie 100k
+.ac dec 30 10 100k
+.sonde V(sortie)

@@ -1,0 +1,9 @@
+* Amplificateur inverseur à AOP (source commandée de gain 100 000)
+* gain attendu : -R2/R1 = -10
+V1 entree 0 SIN(0 0.5 1k) AC 1
+R1 entree moins 1k
+R2 moins sortie 10k
+E1 sortie 0 0 moins 100k
+.tran 10u 3m
+.ac dec 10 10 100k
+.sonde V(entree) V(sortie)

@@ -1,0 +1,9 @@
+* Circuit RLC série : oscillations amorties et résonance
+* f0 = 1/(2π·√(LC)) ≈ 5.03 kHz, facteur de qualité Q = (1/R)·√(L/C) ≈ 16
+V1 entree 0 PULSE(0 1 0.1m 1u 1u 5m 10m) AC 1
+R1 entree a 20
+L1 a b 10m
+C1 b 0 100n
+.tran 2u 2m
+.ac dec 50 500 50k
+.sonde V(b)
