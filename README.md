@@ -1,22 +1,26 @@
-# circuit-spice
+<p align="center"><img src="docs/banner-circuit-spice.png" alt="circuit-spice" width="100%"></p>
 
-Un simulateur de circuits électriques façon **SPICE**, écrit de zéro en Python pur : pas de numpy, pas de scipy. On décrit le circuit dans un fichier texte, le programme écrit les lois de Kirchhoff sous forme de matrice et les résout.
+<p align="center"><img src="https://img.shields.io/badge/Python-no%20dependencies-3776ab?style=flat-square" alt="Python"> <img src="https://img.shields.io/badge/license-MIT-610089?style=flat-square" alt="license"></p>
 
-![Oscillations d'un RLC série](images/rlc-1.svg)
+An electrical circuit simulator in the style of **SPICE**, written from scratch in pure Python: no numpy, no scipy. You describe the circuit in a text file, the program writes Kirchhoff's laws as a matrix and solves them.
 
-![Bode d'un filtre de Sallen-Key d'ordre 2](images/sallen_key-1.svg)
+<p align="center"><a href="README.fr.md">🇫🇷 Version française</a></p>
 
-![Pont de diodes avec condensateur de lissage](images/redresseur.svg)
+![Damped oscillations of a series RLC](images/rlc-1.svg)
 
-## Utilisation
+![Bode plot of a 2nd-order Sallen-Key filter](images/sallen_key-1.svg)
+
+![Diode bridge with a smoothing capacitor](images/redresseur.svg)
+
+## Usage
 
 ```sh
-python3 circuit.py exemples/rc.cir                 # courbes dans le terminal
-python3 circuit.py exemples/rlc.cir --svg images   # + graphiques SVG
-python3 tests.py                                   # 13 comparaisons avec la théorie
+python3 circuit.py exemples/rc.cir                 # curves in the terminal
+python3 circuit.py exemples/rlc.cir --svg images   # + SVG charts
+python3 tests.py                                   # 13 comparisons with theory
 ```
 
-Une netlist ressemble à ça :
+A netlist looks like this (`.sonde` = probe):
 
 ```
 * Filtre RC passe-bas
@@ -28,49 +32,51 @@ C1 sortie 0 1u
 .sonde V(entree) V(sortie)
 ```
 
-| Ligne | Sens |
+| Line | Meaning |
 |---|---|
-| `R1 a b 4.7k` | résistance (aussi `C`, `L`) ; suffixes `f p n u m k meg g` |
-| `V1 a b 5` | source de tension ; aussi `SIN(décalage amplitude fréquence)`, `PULSE(v1 v2 retard montée descente largeur période)`, `PWL(t1 v1 t2 v2 ...)`, `AC amplitude` |
-| `I1 a b 1m` | source de courant (de a vers b à travers la source) |
-| `D1 anode cathode IS=2.5n N=1.75` | diode (loi de Shockley) |
-| `E1 s 0 p m 100k` | source de tension commandée : V(s) = 100 000·(V(p) − V(m)), un AOP idéal |
-| `.op` `.dc V1 0 5 0.1` `.tran pas fin` `.ac dec n f1 f2` | les quatre analyses |
-| `.sonde V(n) V(a,b) I(V1)` | ce qu'on veut tracer |
+| `R1 a b 4.7k` | resistor (also `C`, `L`); suffixes `f p n u m k meg g` |
+| `V1 a b 5` | voltage source; also `SIN(offset amplitude frequency)`, `PULSE(v1 v2 delay rise fall width period)`, `PWL(t1 v1 t2 v2 ...)`, `AC amplitude` |
+| `I1 a b 1m` | current source (from a to b through the source) |
+| `D1 anode cathode IS=2.5n N=1.75` | diode (Shockley's law) |
+| `E1 s 0 p m 100k` | voltage-controlled voltage source: V(s) = 100,000·(V(p) − V(m)), an ideal op-amp |
+| `.op` `.dc V1 0 5 0.1` `.tran step end` `.ac dec n f1 f2` | the four analyses |
+| `.sonde V(n) V(a,b) I(V1)` | what to plot |
 
-Exemples fournis : pont diviseur, RC, RLC, pont de diodes, caractéristique d'une diode, amplificateur inverseur, filtre de Sallen-Key.
+Bundled examples: voltage divider, RC, RLC, diode bridge, diode characteristic, inverting amplifier, Sallen-Key filter.
 
-## Comment ça marche
+## How it works
 
-### Analyse nodale modifiée (MNA)
+### Modified nodal analysis (MNA)
 
-Les inconnues sont les tensions des nœuds (la masse vaut 0) et le courant de chaque source de tension. Chaque composant ajoute sa contribution, son « tampon », dans une matrice `A` et un second membre `b`, puis on résout `A·x = b` par élimination de Gauss avec pivot partiel.
+The unknowns are the node voltages (ground is 0) and the current of each voltage source. Each component adds its contribution, its "stamp", into a matrix `A` and a right-hand side `b`, then `A·x = b` is solved by Gaussian elimination with partial pivoting.
 
-- une résistance entre `a` et `b` ajoute `1/R` en `(a,a)` et `(b,b)`, retire `1/R` en `(a,b)` et `(b,a)` : c'est la loi des nœuds ;
-- une source de tension ajoute une ligne `V(a) − V(b) = E` et une colonne pour son courant.
+- a resistor between `a` and `b` adds `1/R` at `(a,a)` and `(b,b)`, and subtracts `1/R` at `(a,b)` and `(b,a)`: that's Kirchhoff's current law;
+- a voltage source adds a row `V(a) − V(b) = E` and a column for its current.
 
-### Temporel : modèles compagnons
+### Transient: companion models
 
-Un condensateur obéit à `i = C·dv/dt`. Avec un pas `h`, la **règle des trapèzes** donne
+A capacitor obeys `i = C·dv/dt`. With a step `h`, the **trapezoidal rule** gives
 
 ```
 i(n+1) = (2C/h)·(v(n+1) − v(n)) − i(n)
 ```
 
-C'est une conductance `2C/h` en parallèle avec une source de courant qui ne dépend que du passé : à chaque pas, le circuit redevient un circuit de résistances et de sources. Même chose pour une bobine. Le premier pas utilise Euler implicite, qui amortit le choc du démarrage.
+That's a conductance `2C/h` in parallel with a current source that only depends on the past: at every step, the circuit becomes a circuit of resistors and sources again. Same thing for an inductor. The first step uses backward Euler, which damps the start-up shock.
 
-### Diodes : Newton-Raphson
+### Diodes: Newton-Raphson
 
-`i = Is·(e^(v/nVt) − 1)` n'est pas linéaire. On la remplace par sa tangente au point courant (une conductance plus une source de courant), on résout, on recommence jusqu'à ce que plus rien ne bouge. Deux détails repris de SPICE :
+`i = Is·(e^(v/nVt) − 1)` isn't linear. It is replaced by its tangent at the current point (a conductance plus a current source), solved, and repeated until nothing moves any more. Two details taken from SPICE:
 
-- **limitation de pas** (`pnjlim`) : si Newton propose 5 V aux bornes d'une diode, `e^(5/0.026)` déborde ; on raccourcit le pas de façon logarithmique ;
-- **gmin** : une fuite de 10⁻¹² S en parallèle de chaque diode. Elle doit être une vraie conductance (dans le courant *et* dans la matrice), sinon Newton converge à pas de fourmi : c'est exactement ce qui bloquait le pont de diodes au début.
+- **step limiting** (`pnjlim`): if Newton proposes 5 V across a diode, `e^(5/0.026)` overflows; the step is shortened logarithmically;
+- **gmin**: a 10⁻¹² S leak in parallel with each diode. It has to be a real conductance (in the current *and* in the matrix), otherwise Newton converges at a snail's pace: that's exactly what was stalling the diode bridge at first.
 
-### Fréquentiel : nombres complexes
+### AC: complex numbers
 
-Le circuit est linéarisé autour de son point de repos, puis résolu pour chaque fréquence avec des admittances complexes : `jωC` pour un condensateur, `1/(jωL)` pour une bobine. Le même code de Gauss marche tel quel, puisque Python sait diviser des complexes.
+The circuit is linearised around its operating point, then solved for each frequency with complex admittances: `jωC` for a capacitor, `1/(jωL)` for an inductor. The same Gauss code works as is, since Python can divide complex numbers.
 
-## Vérifications (`tests.py`)
+## Checks (`tests.py`)
+
+The output is in French: `diviseur` = divider, `pont de diodes` = diode bridge.
 
 ```
 ok  diviseur : V(b) = 12·4.7/14.7
@@ -88,6 +94,6 @@ ok  diode : V à 1 mA = n·Vt·ln(1 + I/Is)
 ok  pont de diodes : tension moyenne en sortie
 ```
 
-## Limites
+## Limits
 
-Pas de transistors, pas de pas de temps adaptatif, pas de matrices creuses : c'est fait pour comprendre, et pour des circuits de quelques dizaines de composants.
+No transistors, no adaptive time step, no sparse matrices: it's made for understanding, and for circuits of a few dozen components.
